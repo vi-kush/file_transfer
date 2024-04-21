@@ -1,7 +1,6 @@
 const net = require('net');
 const fs = require('fs');
 const fsp = require('fs/promises');
-const { Socket } = require('dgram');
 
 const server = net.createServer();
 const port=8000;
