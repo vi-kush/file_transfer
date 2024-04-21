@@ -1,6 +1,7 @@
 const net = require('net');
 const fs = require('fs');
 const fsp = require('fs/promises');
+const { Socket } = require('dgram');
 
 const server = net.createServer();
 const port=8000;
@@ -47,15 +48,18 @@ server.on("connection",  (socket)=>{
 				var action = data.action;
 				var fileName = data.fileName;
 				socket.action = action;
+				socket.user = data.user;
 				console.log("data",data);
 			}
 			if(action == 'Upload'){
-				fileHandle = await fsp.open(serverFilePath+fileName,"w");
+				const filePath = serverFilePath+socket.user.userName+"/";
+				await checkOrCreateFile(filePath+"/");
+				fileHandle = await fsp.open(filePath+fileName,"w");
 				socket.wfd = fileHandle.createWriteStream();
 
 				socket.wfd.on("finish",() => {
 					console.log('wfd finished');
-					socket.wfd.close();
+					socket.wfd.close(); //trigger close event.
 					socket.wfd = null;
 					socket.action = null;
 				});
@@ -69,15 +73,17 @@ server.on("connection",  (socket)=>{
 
 				socket.resume();
 			}else if(action == 'Download'){
-				const fileStat = fs.stat(serverFilePath+fileName, async (err,stat) => {
+				const filePath = serverFilePath+socket.user.userDownload+"/"+fileName;
+				const fileStat = fs.stat(filePath, async (err,stat) => {
 					if(err){
-						socket.end("File Doesnot Exist");
+						socket.end("DTYPE__JSON-"+JSON.stringify({error:{code:err.code}}));
+						// socket.destroy(new Error("File Doesnot Exist"));
+						return;
 					}
-
 					var size = stat.size;
 					socket.write("DTYPE__JSON-"+JSON.stringify({size}));
 
-					fileHandle = await fsp.open(serverFilePath+fileName,"r");
+					fileHandle = await fsp.open(filePath,"r");
 					socket.rfd = fileHandle.createReadStream();
 
 					socket.rfd.on("end",() => {
@@ -89,6 +95,8 @@ server.on("connection",  (socket)=>{
 							socket.rfd.close();
 							socket.rfd = null;
 						}
+
+						socket.end();
 					})
 
 					socket.rfd.on("data",(data) => {
@@ -119,7 +127,7 @@ server.on("connection",  (socket)=>{
 
 	socket.on('end', ()=> {
 		console.log("Socket Ended");
-		socket.wfd && socket.wfd.end();
+		socket.wfd && socket.wfd.end(); // trigger finish event
 	});
 
 	socket.on("close",() => {
