@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "scripts": {
+    "start": "nodemon server.js",
+    "client": "nodemon client.js hello"
+  },
+  "name": "uploader",
+  "version": "1.0.0",
+  "main": "client.js",
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
