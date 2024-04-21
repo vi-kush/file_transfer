@@ -38,14 +38,15 @@ const socket = net.connect( port, host, async () => {
     let fileHandle, fileStream;
 
     if(action == 'Upload'){
-        const fileStat = fs.existsSync(fileName); 
+        const fileStat = fs.existsSync(filePath);
+        // console.log("fileStat", fileStat, filePath);
         if(fileStat == false){
             socket.destroy(new Error("File Doesnot Exist"));
         }
 
-        var fileSize = (await fsp.stat(fileName)).size;
+        var fileSize = (await fsp.stat(filePath)).size;
         var uploadedSize = 0;
-        fileHandle = await fsp.open(fileName,'r');
+        fileHandle = await fsp.open(filePath,'r');
         fileStream = fileHandle.createReadStream();
         console.log();
         
@@ -57,6 +58,11 @@ const socket = net.connect( port, host, async () => {
             if (!socket.write(data)) {
                 fileStream.pause();
             }
+        })
+
+        fileStream.on("end",()=>{
+            console.log("readstream end");
+            socket.end();
         })
 
         socket.on("drain", ()=>{

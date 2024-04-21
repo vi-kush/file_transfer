@@ -11,7 +11,8 @@ const clientDict = {};
 
 var checkOrCreateFile = function(name) {
 	return new Promise((resolve,reject)=>{
-		fs.opendir("name", (err,msg) => {
+		fs.opendir(name, (err,msg) => {
+			console.log("inside checkOrCreate",err);
 			if(err){
 				if(err.code = 'ENOENT'){
 					fs.mkdir(name, (err,msg) => {
@@ -46,14 +47,26 @@ server.on("connection",  (socket)=>{
 				var action = data.action;
 				var fileName = data.fileName;
 				socket.action = action;
-				console.log(data);
+				console.log("data",data);
 			}
 			if(action == 'Upload'){
 				fileHandle = await fsp.open(serverFilePath+fileName,"w");
 				socket.wfd = fileHandle.createWriteStream();
+
+				socket.wfd.on("finish",() => {
+					console.log('wfd finished');
+					socket.wfd.close();
+					socket.wfd = null;
+					socket.action = null;
+				});
+				socket.wfd.on("close",() => {
+					console.log('wfd closed');
+				});
+
 				socket.wfd.on("drain",()=>{
 					socket.resume();
 				})
+
 				socket.resume();
 			}else if(action == 'Download'){
 				const fileStat = fs.stat(serverFilePath+fileName, async (err,stat) => {
@@ -66,6 +79,18 @@ server.on("connection",  (socket)=>{
 
 					fileHandle = await fsp.open(serverFilePath+fileName,"r");
 					socket.rfd = fileHandle.createReadStream();
+
+					socket.rfd.on("end",() => {
+						console.log("Ended rfd");
+						socket.action = null;
+				
+						if(socket.rfd != null && socket.rfd instanceof fs.ReadStream){
+							console.log("read closed");
+							socket.rfd.close();
+							socket.rfd = null;
+						}
+					})
+
 					socket.rfd.on("data",(data) => {
 
 						if(!socket.write(data)){ // write data to socket
@@ -92,76 +117,13 @@ server.on("connection",  (socket)=>{
 
     // socket.write("hi");
 
-	socket.wfd.on("end",() => {
-		console.log("Ended wfd");
-		socket.action = null;
-
-		if(socket.wfd != null && socket.wfd instanceof fs.WriteStream){
-			console.log("write closed");
-			socket.wfd.close();
-			socket.wfd = null;
-		} 
-
-		// if(socket.rfd != null && socket.rfd instanceof fs.ReadStream){
-		// 	console.log("read closed");
-		// 	socket.rfd.close();
-		// 	socket.rfd = null;
-		// }
-	})
-
-	socket.rfd.on("end",() => {
-		console.log("Ended rfd");
-		socket.action = null;
-
-		// if(socket.wfd != null && socket.wfd instanceof fs.WriteStream){
-		// 	console.log("write closed");
-		// 	socket.wfd.close();
-		// 	socket.wfd = null;
-		// } 
-
-		if(socket.rfd != null && socket.rfd instanceof fs.ReadStream){
-			console.log("read closed");
-			socket.rfd.close();
-			socket.rfd = null;
-		}
-	})
-
-	socket.rfd.on("final",() => {
-		console.log("Final rfd");
-		socket.action = null;
-
-		if(socket.wfd != null && socket.wfd instanceof fs.WriteStream){
-			console.log("write closed");
-			socket.wfd.close();
-			socket.wfd = null;
-		} 
-
-		if(socket.rfd != null && socket.rfd instanceof fs.ReadStream){
-			console.log("read closed");
-			socket.rfd.close();
-			socket.rfd = null;
-		} 
-	})
-
-	socket.wfd.on("final",() => {
-		console.log("Final wfd");
-		socket.action = null;
-
-		if(socket.wfd != null && socket.wfd instanceof fs.WriteStream){
-			console.log("write closed");
-			socket.wfd.close();
-			socket.wfd = null;
-		} 
-
-		if(socket.rfd != null && socket.rfd instanceof fs.ReadStream){
-			console.log("read closed");
-			socket.rfd.close();
-			socket.rfd = null;
-		} 
-	})
+	socket.on('end', ()=> {
+		console.log("Socket Ended");
+		socket.wfd && socket.wfd.end();
+	});
 
 	socket.on("close",() => {
-		console.log("Closed");
+		console.log("socket Closed");
 	});
 
 	socket.on("error",(err) => {
@@ -182,12 +144,14 @@ server.on("connection",  (socket)=>{
 
 })
 
-server.listen(port, host, ()=>{
+server.listen(port, host, async ()=>{
     console.log("listening on", server.address());
+	let dirStat = await checkOrCreateFile(serverFilePath);
+	console.log("dirStat",dirStat);
 })
 
 server.on("error", (err)=>{
-	if (e.code == 'EADDRINUSE') {
+	if (err.code == 'EADDRINUSE') {
 		console.log('Error: Address in use ' + host +':'+ port);
 	}
 })

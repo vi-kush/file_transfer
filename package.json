@@ -3,8 +3,8 @@
     "nodemon": "^3.0.2"
   },
   "scripts": {
-    "start": "nodemon server.js",
-    "client": "nodemon client.js hello"
+    "start": "nodemon --trace-warnings server.js",
+    "client": "nodemon client.js"
   },
   "name": "uploader",
   "version": "1.0.0",
