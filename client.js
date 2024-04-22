@@ -101,7 +101,10 @@ const createSocket = async (user) => {
                             // console.log(metaData);
                             var data = JSON.parse(metaData.split("-")[1]);
                             if(data.error){
-                                return socket.destroy(data.error);
+                                fileStream.close();
+                                fileHandle.close();
+                                fs.rmSync(filePath);
+                                return socket.destroy(data.error); // trigger error event
                             }
                             socket.dataSize = data.size;
                             console.log(data);
@@ -131,7 +134,7 @@ const createSocket = async (user) => {
                 fileStream && fileStream.close();
                 fileStream = null;
                 nextIter = true;
-                resolve();
+                resolve("completed");
                 // process.exit(0);
             })
 
@@ -175,11 +178,19 @@ const createSocket = async (user) => {
             filePath = await ask("which file you want to? \t");
         }
         
-        await createSocket(user);
+        await createSocket(user)
+            .then((data)=>{
+                console.log(data);
+            }).catch((err) => {
+                console.log(err);
+            });
+
         if(nextIter){
             console.log();
             action = '';
             filePath = '';
+        }else{
+            process.exit(1);
         }
     }
 })();

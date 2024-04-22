@@ -55,6 +55,7 @@ server.on("connection",  (socket)=>{
 				await checkOrCreateFile(filePath+"/");
 				fileHandle = await fsp.open(filePath+fileName,"w");
 				socket.wfd = fileHandle.createWriteStream();
+				socket.fh = fileHandle;
 
 				socket.wfd.on("finish",() => {
 					console.log('wfd finished');
@@ -84,6 +85,7 @@ server.on("connection",  (socket)=>{
 
 					fileHandle = await fsp.open(filePath,"r");
 					socket.rfd = fileHandle.createReadStream();
+					socket.fh = fileHandle;
 
 					socket.rfd.on("end",() => {
 						console.log("Ended rfd");
@@ -93,6 +95,7 @@ server.on("connection",  (socket)=>{
 							console.log("read closed");
 							socket.rfd.close();
 							socket.rfd = null;
+							socket.fh.close();
 						}
 
 						socket.end();
@@ -126,11 +129,12 @@ server.on("connection",  (socket)=>{
 
 	socket.on('end', ()=> {
 		console.log("Socket Ended");
-		socket.wfd && socket.wfd.end(); // trigger finish event
+		socket.wfd && socket.wfd instanceof fs.WriteStream && socket.wfd.end(); // trigger finish event
+		socket.fh.close();
 	});
 
 	socket.on("close",() => {
-		console.log("socket Closed");
+		console.log("socket Closed"); //emit after end/error
 	});
 
 	socket.on("error",(err) => {
