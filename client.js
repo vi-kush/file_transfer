@@ -20,40 +20,7 @@ var action = (ACTION_INDEX in args)?args[ACTION_INDEX]:'';
 var filePath = (FILE_INDEX in args)?args[FILE_INDEX]:'';
 var nextIter = false;
 
-(async function main(){
-
-    let user = {};
-    user.userName = await ask("Please enter name: \t");
-    user.userName = user.userName+Math.floor(Date.now()/1000)+"_"+Math.floor(Math.random()*1000);
-    console.log("Your User Id: ",user.userName);
-
-    while(true){
-        nextIter = false;
-        if(action === ''){
-            action = await ask("what you want to do? \t");
-        }
-        if(action.toLowerCase() == 'quit'){
-            process.exit(0);
-        }
-
-        if(action.toLowerCase().charAt(0) === 'd'){
-            user.userDownload = await ask("Enter User whom file u want to download (leave blank if you are the owner of file) \t");
-            if(user.userDownload === '') user.userDownload = user.userName;
-        }
-        if(filePath === ''){
-            filePath = await ask("which file you want to? \t");
-        }
-        
-        await createSocket(user);
-        if(nextIter){
-            console.log();
-            action = '';
-            filePath = '';
-        }
-    }
-})();
-
-const ask = async (msg) => {
+async function ask(msg) {
     let message = await rl.question(msg);
     // move the cursor one line up
     process.stdout.moveCursor(0,-1);
@@ -176,10 +143,43 @@ const createSocket = async (user) => {
                 }else{
                     console.log(err);
                 }
-                nextIter = true;
+                nextIter = false;
                 reject(err);
                 // process.exit(0);
             });
         })
     });
 }
+
+(async function main(){
+
+    let user = {};
+    user.userName = await ask("Please enter name: \t");
+    user.userName = user.userName+Math.floor(Date.now()/1000)+"_"+Math.floor(Math.random()*1000);
+    console.log("Your User Id: ",user.userName);
+
+    while(true){
+        nextIter = false;
+        if(action === ''){
+            action = await ask("what you want to do? \t");
+        }
+        if(action.toLowerCase() == 'quit'){
+            process.exit(0);
+        }
+
+        if(action.toLowerCase().charAt(0) === 'd'){
+            user.userDownload = await ask("Enter User whom file u want to download (leave blank if you are the owner of file) \t");
+            if(user.userDownload === '') user.userDownload = user.userName;
+        }
+        if(filePath === ''){
+            filePath = await ask("which file you want to? \t");
+        }
+        
+        await createSocket(user);
+        if(nextIter){
+            console.log();
+            action = '';
+            filePath = '';
+        }
+    }
+})();
