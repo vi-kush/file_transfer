@@ -89,7 +89,7 @@ const createSocket = async (user) => {
                 })
 
             }else if(action == 'Download'){
-                fileHandle = await fsp.open(fileName,'w');
+                fileHandle = await fsp.open(filePath,'w');
                 fileStream = fileHandle.createWriteStream();
 
                 socket.dataSize = null;

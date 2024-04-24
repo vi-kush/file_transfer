@@ -129,8 +129,10 @@ server.on("connection",  (socket)=>{
 
 	socket.on('end', ()=> {
 		console.log("Socket Ended");
-		socket.wfd && socket.wfd instanceof fs.WriteStream && socket.wfd.end(); // trigger finish event
-		socket.fh.close();
+		if(socket.wfd && socket.wfd instanceof fs.WriteStream){
+			socket.wfd.end(); // trigger finish event
+			socket.fh.close();
+		}
 	});
 
 	socket.on("close",() => {
